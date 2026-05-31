@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>สร้างรูปโปรโมทร้านค้า</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kanit', sans-serif;
+        }
+        body {
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #00c300; /* สีเขียว LINE MAN */
+        }
+        .upload-btn-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .btn-upload {
+            border: 2px dashed #00c300;
+            color: #00c300;
+            background-color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .btn-upload:hover {
+            background-color: #f0fdf0;
+        }
+        .upload-btn-wrapper input[type=file] {
+            font-size: 100px;
+            position: absolute;
+            left: 0;
+            top: 0;
+            opacity: 0;
+            cursor: pointer;
+            height: 100%;
+        }
+        .canvas-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background-color: #eee;
+            position: relative;
+        }
+        /* กำหนดขนาด Canvas ให้ Responsive บนหน้าจอ แต่ความละเอียดจริงคือ 1080x1080 */
+        canvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none; /* ป้องกันการเลื่อนหน้าจอเวลาลากรูปบนมือถือ */
+            cursor: move;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        input[type=range] {
+            width: 100%;
+            accent-color: #00c300;
+        }
+        .btn-download {
+            background-color: #00c300;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .btn-download:hover {
+            background-color: #00a000;
+        }
+        .hint {
+            font-size: 12px;
+            color: #888;
+            margin-top: 10px;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <h1>สร้างรูปโปรโมทร้าน</h1>
+        
+        <div class="upload-btn-wrapper">
+            <button class="btn-upload">📁 เลือกรูปภาพอาหารของคุณ</button>
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" />
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="editorCanvas" width="1080" height="1080"></canvas>
+        </div>
+
+        <div class="control-group">
+            <label for="zoomSlider">🔍 ปรับขนาดรูปภาพ (ซูม)</label>
+            <input type="range" id="zoomSlider" min="0.5" max="3" step="0.05" value="1">
+        </div>
+
+        <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปภาพ</button>
+        <p class="hint">*สามารถใช้นิ้วเลื่อนรูปในกรอบได้เลย</p>
+    </div>
+
+    <script>
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageUpload = document.getElementById('imageUpload');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const downloadBtn = document.getElementById('downloadBtn');
+
+        // ตั้งค่ารูปกรอบ (Frame)
+        const frameImg = new Image();
+        frameImg.src = 'LM1.png'; // *** แก้ไขชื่อไฟล์กรอบรูปที่นี่ หากตั้งชื่ออื่น ***
+        
+        // วาดกรอบรอไว้เลยเมื่อโหลดเว็บ
+        frameImg.onload = () => {
+            draw();
+        };
+
+        let userImg = null;
+        let imgX = 0, imgY = 0;
+        let baseScale = 1;
+        let currentSliderValue = 1;
+
+        // ตัวแปรสำหรับการลากเลื่อนรูป
+        let isDragging = false;
+        let lastMouseX = 0;
+        let lastMouseY = 0;
+
+        // เมื่อผู้ใช้อัปโหลดรูป
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    userImg = img;
+                    
+                    // คำนวณ Scale เริ่มต้น ให้รูปครอบคลุมพื้นที่ 1080x1080 (Crop to fit)
+                    baseScale = Math.max(canvas.width / userImg.width, canvas.height / userImg.height);
+                    currentSliderValue = 1;
+                    zoomSlider.value = 1;
+
+                    // จัดรูปให้อยู่กึ่งกลาง
+                    const finalScale = baseScale * currentSliderValue;
+                    imgX = (canvas.width - userImg.width * finalScale) / 2;
+                    imgY = (canvas.height - userImg.height * finalScale) / 2;
+
+                    draw();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+        });
+
+        // ฟังก์ชันวาด Canvas
+        function draw() {
+            // ล้างหน้าจอ
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            // วาดรูปอาหาร (ถ้ามีอัปโหลด)
+            if (userImg) {
+                const finalScale = baseScale * currentSliderValue;
+                ctx.drawImage(userImg, imgX, imgY, userImg.width * finalScale, userImg.height * finalScale);
+            }
+
+            // วาดรูปกรอบทับด้านบนเสมอ
+            if (frameImg.complete && frameImg.naturalHeight !== 0) {
+                ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // เมื่อปรับ Slider (ซูมเข้า-ออก โดยให้ศูนย์กลางอยู่ที่กลางจอ)
+        zoomSlider.addEventListener('input', function(e) {
+            if (!userImg) return;
+            const newSliderValue = parseFloat(e.target.value);
+            const ratio = newSliderValue / currentSliderValue;
+
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+
+            // ปรับตำแหน่ง X, Y ให้ซูมเข้าหาจุดกึ่งกลาง
+            imgX = cx - (cx - imgX) * ratio;
+            imgY = cy - (cy - imgY) * ratio;
+
+            currentSliderValue = newSliderValue;
+            draw();
+        });
+
+        // ================= ระบบลากเลื่อนรูป (รองรับเมาส์และนิ้วสัมผัส) =================
+
+        // แปลงพิกัดจากหน้าจอ (Responsive) เป็นพิกัดจริงบน Canvas (1080x1080)
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            
+            // กรณีเป็น Touch Screen
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function startDrag(e) {
+            if (!userImg) return;
+            isDragging = true;
+            const pos = getMousePos(e);
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
+        }
+
+        function drag(e) {
+            if (!isDragging || !userImg) return;
+            const pos = getMousePos(e);
+            const dx = pos.x - lastMouseX;
+            const dy = pos.y - lastMouseY;
+
+            imgX += dx;
+            imgY += dy;
+
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
+            draw();
+        }
+
+        function endDrag() {
+            isDragging = false;
+        }
+
+        // Mouse Events
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', drag);
+        window.addEventListener('mouseup', endDrag);
+
+        // Touch Events (มือถือ)
+        canvas.addEventListener('touchstart', startDrag, {passive: false});
+        window.addEventListener('touchmove', drag, {passive: false});
+        window.addEventListener('touchend', endDrag);
+
+        // ================= ปุ่มดาวน์โหลด =================
+        downloadBtn.addEventListener('click', function() {
+            if (!userImg) {
+                alert('กรุณาเลือกรูปภาพก่อนดาวน์โหลดครับ');
+                return;
+            }
+            // แปลง Canvas เป็นไฟล์รูป (.jpg ความละเอียดสูง)
+            const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+            
+            // สร้าง Link จำลองเพื่อโหลดไฟล์
+            const link = document.createElement('a');
+            link.download = 'promoted-cover.jpg';
+            link.href = dataURL;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+
+    </script>
+</body>
+</html>
