@@ -92,14 +92,15 @@
             font-size: 14px;
         }
         
-        /* สไตล์สำหรับส่วนเลือกกรอบรูป */
+        /* สไตล์สำหรับส่วนเลือกกรอบรูป 6 กรอบ (แสดงผลแถวละ 3 รูป พอดีมือถือ) */
         .frame-selector {
             display: flex;
+            flex-wrap: wrap;
             gap: 10px;
-            justify-content: space-between;
+            justify-content: flex-start;
         }
         .frame-thumb {
-            width: 23%;
+            width: calc(33.33% - 7px); /* คำนวณขนาดให้แบ่งเป็น 3 คอลัมน์ */
             aspect-ratio: 1 / 1;
             object-fit: cover;
             border: 2px solid #ddd;
@@ -111,7 +112,7 @@
         .frame-thumb.active {
             border-color: #00c300;
             box-shadow: 0 0 8px rgba(0, 195, 0, 0.4);
-            transform: scale(1.05);
+            transform: scale(1.03);
         }
 
         input[type=range] {
@@ -145,37 +146,34 @@
     <div class="container">
         <h1>สร้างรูปโปรโมทร้าน</h1>
         
-        <!-- ส่วนอัปโหลดรูป -->
         <div class="upload-btn-wrapper">
             <button class="btn-upload">📁 เลือกรูปภาพอาหารของคุณ</button>
             <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" />
         </div>
 
-        <!-- พื้นที่แสดงผล -->
         <div class="canvas-container">
             <canvas id="editorCanvas" width="1080" height="1080"></canvas>
         </div>
 
-        <!-- ส่วนเลือกกรอบรูป 4 แบบ -->
         <div class="control-group">
-            <label>🖼️ เลือกกรอบรูป</label>
+            <label>🖼️ เลือกกรอบรูปที่ต้องการ</label>
             <div class="frame-selector">
-                <!-- data-src คือชื่อไฟล์ที่จะถูกดึงไปใช้เมื่อคลิก -->
-                <img src="LM1.png" class="frame-thumb active" data-src="LM1.png" alt="Frame 1">
-                <img src="LM2.png" class="frame-thumb" data-src="LM2.png" alt="Frame 2">
-                <img src="LM3.png" class="frame-thumb" data-src="LM3.png" alt="Frame 3">
-                <img src="LM4.png" class="frame-thumb" data-src="LM4.png" alt="Frame 4">
+                <img src="LM1.png" class="frame-thumb active" data-src="LM1.png" alt="กรอบ 1">
+                <img src="LM2.png" class="frame-thumb" data-src="LM2.png" alt="กรอบ 2">
+                <img src="LM3.png" class="frame-thumb" data-src="LM3.png" alt="กรอบ 3">
+                <img src="LM4.png" class="frame-thumb" data-src="LM4.png" alt="กรอบ 4">
+                <img src="LM5.png" class="frame-thumb" data-src="LM5.png" alt="กรอบ 5">
+                <img src="LM6.png" class="frame-thumb" data-src="LM6.png" alt="กรอบ 6">
             </div>
         </div>
 
-        <!-- ส่วนปรับขนาด -->
         <div class="control-group">
             <label for="zoomSlider">🔍 ปรับขนาดรูปภาพ (ซูม)</label>
             <input type="range" id="zoomSlider" min="0.5" max="3" step="0.05" value="1">
         </div>
 
-        <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปภาพ</button>
-        <p class="hint">*สามารถใช้นิ้วเลื่อนรูปในกรอบได้เลย</p>
+        <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปภาพคมชัดสูง</button>
+        <p class="hint">*สามารถใช้นิ้วเลื่อนหรือลากรูปภาพในกรอบได้เลย</p>
     </div>
 
     <script>
@@ -186,11 +184,11 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const frameThumbs = document.querySelectorAll('.frame-thumb');
 
-        // ตั้งค่ารูปกรอบเริ่มต้น
+        // ตั้งค่ารูปกรอบเริ่มต้นเป็นกรอบแรก (LM1.png)
         const frameImg = new Image();
         frameImg.src = 'LM1.png'; 
         
-        // เมื่อโหลดกรอบเสร็จให้วาดลง Canvas
+        // วาดรูปพื้นหลังและกรอบทันทีเมื่อโหลดกรอบรูปเสร็จ
         frameImg.onload = () => {
             draw();
         };
@@ -204,22 +202,21 @@
         let lastMouseX = 0;
         let lastMouseY = 0;
 
-        // ================= ระบบเปลี่ยนกรอบรูป =================
+        // ================= ระบบเปลี่ยนกรอบรูปทำงานเมื่อมีการคลิกเลือก =================
         frameThumbs.forEach(thumb => {
             thumb.addEventListener('click', function() {
-                // เอาคลาส active ออกจากทุกรูป
+                // เคลียร์สถานะ active เก่าออกทั้งหมด
                 frameThumbs.forEach(t => t.classList.remove('active'));
-                // ใส่คลาส active ให้รูปที่ถูกคลิก
+                // เพิ่มสถานะ active ให้กรอบปัจจุบันที่เลือก
                 this.classList.add('active');
 
-                // เปลี่ยน Source ของกรอบรูปหลัก
+                // เปลี่ยนชื่อไฟล์กรอบตามภาพที่เลือก
                 const newSrc = this.getAttribute('data-src');
                 frameImg.src = newSrc; 
-                // หมายเหตุ: เมื่อเปลี่ยน src ระบบจะไปเรียก frameImg.onload เพื่อวาดใหม่ให้อัตโนมัติ
             });
         });
 
-        // ================= เมื่อผู้ใช้อัปโหลดรูป =================
+        // ================= ระบบประมวลผลเมื่ออัปโหลดรูปอาหารเข้ามา =================
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -230,10 +227,12 @@
                 img.onload = function() {
                     userImg = img;
                     
+                    // คำนวณสเกลเริ่มต้นให้รูปแสดงผลพอดีขอบ Canvas
                     baseScale = Math.max(canvas.width / userImg.width, canvas.height / userImg.height);
                     currentSliderValue = 1;
                     zoomSlider.value = 1;
 
+                    // คำนวณตําแหน่งให้อยู่ตรงกึ่งกลางของ Canvas พอดี
                     const finalScale = baseScale * currentSliderValue;
                     imgX = (canvas.width - userImg.width * finalScale) / 2;
                     imgY = (canvas.height - userImg.height * finalScale) / 2;
@@ -245,23 +244,28 @@
             reader.readAsDataURL(file);
         });
 
-        // ================= ฟังก์ชันวาด Canvas =================
+        // ================= ฟังก์ชันหลักในการวาดองค์ประกอบทั้งหมดลงบน Canvas =================
         function draw() {
+            // ล้างหน้าจอทุกครั้งก่อนวาดใหม่ป้องกันรูปซ้อนซาก
             ctx.clearRect(0, 0, canvas.width, canvas.height);
+            
+            // ใส่พื้นหลังสีขาวเผื่อรูปที่อัปโหลดมามีส่วนโปร่งใส
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
+            // วาดรูปอาหารของผู้ใช้ไว้ชั้นล่างสุด
             if (userImg) {
                 const finalScale = baseScale * currentSliderValue;
                 ctx.drawImage(userImg, imgX, imgY, userImg.width * finalScale, userImg.height * finalScale);
             }
 
+            // วาดกรอบ LINE MAN ทับไว้ด้านบนสุดเสมอเพื่อเจาะช่องใส
             if (frameImg.complete && frameImg.naturalHeight !== 0) {
                 ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
             }
         }
 
-        // ================= ปรับ Slider =================
+        // ================= ควบคุมการซูมด้วยแถบเลื่อนโดยยึดจุดกึ่งกลางเป็นหลัก =================
         zoomSlider.addEventListener('input', function(e) {
             if (!userImg) return;
             const newSliderValue = parseFloat(e.target.value);
@@ -277,7 +281,7 @@
             draw();
         });
 
-        // ================= ลากเลื่อนรูป =================
+        // ================= ระบบการลากและเลื่อนพิกัดของรูปภาพ (Mouse & Touch Screen) =================
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             let clientX = e.clientX;
@@ -304,9 +308,8 @@
 
         function drag(e) {
             if (!isDragging || !userImg) return;
-            // ป้องกันหน้าจอเลื่อนเวลาลากรูปบนมือถือ
             if (e.type === 'touchmove') {
-                e.preventDefault();
+                e.preventDefault(); // ป้องกันเบราว์เซอร์เลื่อนหน้าจอตามตอนที่ลากรูปบนมือถือ
             }
             const pos = getMousePos(e);
             const dx = pos.x - lastMouseX;
@@ -324,23 +327,29 @@
             isDragging = false;
         }
 
+        // ตัวตรวจจับสำหรับคอมพิวเตอร์ (Mouse)
         canvas.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', drag);
         window.addEventListener('mouseup', endDrag);
 
+        // ตัวตรวจจับสำหรับหน้าจอมือถือ (Touch Screen)
         canvas.addEventListener('touchstart', startDrag, {passive: false});
         window.addEventListener('touchmove', drag, {passive: false});
         window.addEventListener('touchend', endDrag);
 
-        // ================= ปุ่มดาวน์โหลด =================
+        // ================= ปุ่มบันทึกผลลัพธ์เป็นไฟล์ PNG ความละเอียดสูง 1080x1080px =================
         downloadBtn.addEventListener('click', function() {
             if (!userImg) {
-                alert('กรุณาเลือกรูปภาพก่อนดาวน์โหลดครับ');
+                alert('กรุณาเลือกรูปภาพอาหารของคุณก่อนดาวน์โหลดครับ');
                 return;
             }
-            const dataURL = canvas.toDataURL('image/jpeg', 1.0);
+            
+            // แปลงข้อมูลบิตแมปบนแคนวาสให้ออกมาเป็น Data URL รูปแบบ PNG เพื่อความชัดสูงสุด
+            const dataURL = canvas.toDataURL('image/png');
+            
+            // สร้าง Element ลิงก์จำลองขึ้นมาเพื่อสั่งดาวน์โหลดลงเครื่องอัตโนมัติ
             const link = document.createElement('a');
-            link.download = 'promoted-cover.jpg';
+            link.download = 'promoted-cover.png'; 
             link.href = dataURL;
             document.body.appendChild(link);
             link.click();
