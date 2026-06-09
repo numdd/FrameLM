@@ -32,12 +32,9 @@
         h1 {
             font-size: 24px;
             margin-bottom: 20px;
-            color: #00c300; /* สีเขียว LINE MAN */
+            color: #00c300;
         }
         .upload-btn-wrapper {
-            position: relative;
-            overflow: hidden;
-            display: inline-block;
             margin-bottom: 15px;
             width: 100%;
         }
@@ -55,15 +52,6 @@
         }
         .btn-upload:hover {
             background-color: #f0fdf0;
-        }
-        .upload-btn-wrapper input[type=file] {
-            font-size: 100px;
-            position: absolute;
-            left: 0;
-            top: 0;
-            opacity: 0;
-            cursor: pointer;
-            height: 100%;
         }
         .canvas-container {
             width: 100%;
@@ -92,7 +80,6 @@
             font-size: 14px;
         }
         
-        /* สไตล์สำหรับส่วนเลือกกรอบรูป 6 กรอบ (แสดงผลแถวละ 3 รูป พอดีมือถือ) */
         .frame-selector {
             display: flex;
             flex-wrap: wrap;
@@ -100,7 +87,7 @@
             justify-content: flex-start;
         }
         .frame-thumb {
-            width: calc(33.33% - 7px); /* คำนวณขนาดให้แบ่งเป็น 3 คอลัมน์ */
+            width: calc(33.33% - 7px); 
             aspect-ratio: 1 / 1;
             object-fit: cover;
             border: 2px solid #ddd;
@@ -147,8 +134,8 @@
         <h1>สร้างรูปโปรโมทร้าน</h1>
         
         <div class="upload-btn-wrapper">
-            <button class="btn-upload">📁 เลือกรูปภาพอาหารของคุณ</button>
-            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" />
+            <button class="btn-upload" id="uploadTriggerBtn">📁 เลือกรูปภาพอาหารของคุณ</button>
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" style="display: none;" />
         </div>
 
         <div class="canvas-container">
@@ -182,15 +169,15 @@
         const canvas = document.getElementById('editorCanvas');
         const ctx = canvas.getContext('2d');
         const imageUpload = document.getElementById('imageUpload');
+        const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
         const zoomSlider = document.getElementById('zoomSlider');
         const downloadBtn = document.getElementById('downloadBtn');
         const frameThumbs = document.querySelectorAll('.frame-thumb');
 
-        // ตั้งค่ารูปกรอบเริ่มต้นเป็นกรอบแรก (LM1.png)
+        // ตั้งค่ารูปกรอบเริ่มต้นเป็นกรอบแรก
         const frameImg = new Image();
         frameImg.src = 'LM1.png'; 
         
-        // วาดรูปพื้นหลังและกรอบทันทีเมื่อโหลดกรอบรูปเสร็จ
         frameImg.onload = () => {
             draw();
         };
@@ -204,21 +191,21 @@
         let lastMouseX = 0;
         let lastMouseY = 0;
 
-        // ================= ระบบเปลี่ยนกรอบรูปทำงานเมื่อมีการคลิกเลือก =================
+        // ================= ระบบเปลี่ยนกรอบรูป =================
         frameThumbs.forEach(thumb => {
             thumb.addEventListener('click', function() {
-                // เคลียร์สถานะ active เก่าออกทั้งหมด
                 frameThumbs.forEach(t => t.classList.remove('active'));
-                // เพิ่มสถานะ active ให้กรอบปัจจุบันที่เลือก
                 this.classList.add('active');
-
-                // เปลี่ยนชื่อไฟล์กรอบตามภาพที่เลือก
-                const newSrc = this.getAttribute('data-src');
-                frameImg.src = newSrc; 
+                frameImg.src = this.getAttribute('data-src'); 
             });
         });
 
-        // ================= ระบบประมวลผลเมื่ออัปโหลดรูปอาหารเข้ามา =================
+        // ================= ระบบอัปโหลดรูป (แก้ปัญหาให้มือถือกดได้ชัวร์ๆ) =================
+        // เมื่อกดปุ่ม ให้ JS ไปสั่งคลิกที่ input file ที่ซ่อนอยู่
+        uploadTriggerBtn.addEventListener('click', function() {
+            imageUpload.click();
+        });
+
         imageUpload.addEventListener('change', function(e) {
             const file = e.target.files[0];
             if (!file) return;
@@ -229,12 +216,10 @@
                 img.onload = function() {
                     userImg = img;
                     
-                    // คำนวณสเกลเริ่มต้นให้รูปแสดงผลพอดีขอบ Canvas
                     baseScale = Math.max(canvas.width / userImg.width, canvas.height / userImg.height);
                     currentSliderValue = 1;
                     zoomSlider.value = 1;
 
-                    // คำนวณตําแหน่งให้อยู่ตรงกึ่งกลางของ Canvas พอดี
                     const finalScale = baseScale * currentSliderValue;
                     imgX = (canvas.width - userImg.width * finalScale) / 2;
                     imgY = (canvas.height - userImg.height * finalScale) / 2;
@@ -246,28 +231,23 @@
             reader.readAsDataURL(file);
         });
 
-        // ================= ฟังก์ชันหลักในการวาดองค์ประกอบทั้งหมดลงบน Canvas =================
+        // ================= วาด Canvas =================
         function draw() {
-            // ล้างหน้าจอทุกครั้งก่อนวาดใหม่ป้องกันรูปซ้อนซาก
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            
-            // ใส่พื้นหลังสีขาวเผื่อรูปที่อัปโหลดมามีส่วนโปร่งใส
             ctx.fillStyle = "#ffffff";
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // วาดรูปอาหารของผู้ใช้ไว้ชั้นล่างสุด
             if (userImg) {
                 const finalScale = baseScale * currentSliderValue;
                 ctx.drawImage(userImg, imgX, imgY, userImg.width * finalScale, userImg.height * finalScale);
             }
 
-            // วาดกรอบ LINE MAN ทับไว้ด้านบนสุดเสมอเพื่อเจาะช่องใส
             if (frameImg.complete && frameImg.naturalHeight !== 0) {
                 ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
             }
         }
 
-        // ================= ควบคุมการซูมด้วยแถบเลื่อนโดยยึดจุดกึ่งกลางเป็นหลัก =================
+        // ================= ซูมรูปภาพ =================
         zoomSlider.addEventListener('input', function(e) {
             if (!userImg) return;
             const newSliderValue = parseFloat(e.target.value);
@@ -283,7 +263,7 @@
             draw();
         });
 
-        // ================= ระบบการลากและเลื่อนพิกัดของรูปภาพ (Mouse & Touch Screen) =================
+        // ================= ลากเลื่อนรูปภาพ =================
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             let clientX = e.clientX;
@@ -311,7 +291,7 @@
         function drag(e) {
             if (!isDragging || !userImg) return;
             if (e.type === 'touchmove') {
-                e.preventDefault(); // ป้องกันเบราว์เซอร์เลื่อนหน้าจอตามตอนที่ลากรูปบนมือถือ
+                e.preventDefault(); 
             }
             const pos = getMousePos(e);
             const dx = pos.x - lastMouseX;
@@ -329,24 +309,21 @@
             isDragging = false;
         }
 
-        // ตัวตรวจจับสำหรับคอมพิวเตอร์ (Mouse)
         canvas.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', drag);
         window.addEventListener('mouseup', endDrag);
 
-        // ตัวตรวจจับสำหรับหน้าจอมือถือ (Touch Screen)
         canvas.addEventListener('touchstart', startDrag, {passive: false});
         window.addEventListener('touchmove', drag, {passive: false});
         window.addEventListener('touchend', endDrag);
 
-        // ================= ปุ่มบันทึกผลลัพธ์ที่ปรับปรุงใหม่ให้รองรับมือถือ 100% =================
+        // ================= ระบบดาวน์โหลดรองรับมือถือ =================
         downloadBtn.addEventListener('click', function() {
             if (!userImg) {
                 alert('กรุณาเลือกรูปภาพอาหารของคุณก่อนดาวน์โหลดครับ');
                 return;
             }
 
-            // แปลง Canvas เป็น Blob เพื่อความเสถียรบนเบราว์เซอร์มือถือ
             canvas.toBlob(function(blob) {
                 if (!blob) {
                     alert('เกิดข้อผิดพลาดในการสร้างไฟล์ภาพ');
@@ -355,7 +332,6 @@
 
                 const fileName = 'promoted-cover.png';
 
-                // วิธีที่ 1: ลองใช้ Web Share API (จะมีเด้งให้กด "บันทึกภาพ" บน iOS/Android อัตโนมัติ)
                 if (navigator.canShare && navigator.share) {
                     const file = new File([blob], fileName, { type: blob.type });
                     if (navigator.canShare({ files: [file] })) {
@@ -363,39 +339,33 @@
                             files: [file],
                             title: 'รูปโปรโมทร้าน'
                         }).catch((error) => {
-                            // ถ้าผู้ใช้กดยกเลิก หรือเบราว์เซอร์มีปัญหา ให้เปลี่ยนไปใช้วิธีที่ 2
                             forceDownload(blob, fileName);
                         });
-                        return; // จบการทำงาน
+                        return; 
                     }
                 }
 
-                // วิธีที่ 2: ดาวน์โหลดแบบปกติ (สำหรับคอมพิวเตอร์และเบราว์เซอร์ที่ไม่รองรับ Share API)
                 forceDownload(blob, fileName);
 
             }, 'image/png', 1.0);
         });
 
-        // ฟังก์ชันช่วยดาวน์โหลด (Fallback)
         function forceDownload(blob, fileName) {
             const url = URL.createObjectURL(blob);
             const link = document.createElement('a');
             link.download = fileName;
             link.href = url;
             
-            // ต้องเพิ่ม link ลงในหน้าเว็บก่อนค่อยสั่งคลิก (แก้บั๊กของ iOS Safari บางรุ่น)
             document.body.appendChild(link);
             link.click();
             document.body.removeChild(link);
 
-            // เคลียร์ memory
             setTimeout(() => URL.revokeObjectURL(url), 100);
 
-            // แจ้งเตือนผู้ใช้ หากพบว่ากำลังเปิดลิงก์ผ่านแอปอย่าง LINE หรือ Facebook ที่ชอบบล็อกการดาวน์โหลด
             const ua = navigator.userAgent || navigator.vendor || window.opera;
             if (ua.includes("FBAN") || ua.includes("FBAV") || ua.includes("Line")) {
                 setTimeout(() => {
-                    alert("💡 หากกดแล้วไม่ดาวน์โหลด (เนื่องจากเปิดในแอป LINE/Facebook)\\n\\nแนะนำให้กดไอคอน 'จุด 3 จุด' มุมบนขวา แล้วเลือก 'เปิดในเบราว์เซอร์เริ่มต้น' (Open in external browser) ครับ");
+                    alert("💡 หากกดแล้วไม่ดาวน์โหลด (เนื่องจากเปิดในแอป LINE/Facebook)\n\nแนะนำให้กดไอคอน 'จุด 3 จุด' มุมบนขวา แล้วเลือก 'เปิดในเบราว์เซอร์เริ่มต้น' (Open in external browser) ครับ");
                 }, 500);
             }
         }
