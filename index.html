@@ -12,6 +12,25 @@
             padding: 0;
             font-family: 'Kanit', sans-serif;
         }
+        
+        /* สไตล์ของแถบแจ้งเตือนเมื่อเปิดในแอป LINE / Facebook */
+        .in-app-banner {
+            display: none;
+            background-color: #ffcc00;
+            color: #111;
+            padding: 12px 15px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            border-bottom: 2px solid #e6b800;
+        }
+        
         body {
             background-color: #f4f7f6;
             color: #333;
@@ -20,6 +39,12 @@
             align-items: center;
             padding: 20px;
         }
+        
+        /* ขยับเนื้อหาลงมาเมื่อมีแถบแจ้งเตือนปรากฏ */
+        body.has-banner {
+            padding-top: 70px;
+        }
+
         .container {
             background: #fff;
             width: 100%;
@@ -137,6 +162,10 @@
 </head>
 <body>
 
+    <div id="inAppBanner" class="in-app-banner">
+        ⚠️ เพื่อให้ดาวน์โหลดรูปได้: กรุณากดที่ปุ่ม <b>(จุด 3 จุด ⋯)</b> ด้านบนขวา แล้วเลือก <b>"เปิดในเบราว์เซอร์ปกติ" (Open in Browser)</b>
+    </div>
+
     <div class="container">
         <h1>สร้างรูปโปรโมทร้าน</h1>
         
@@ -175,6 +204,34 @@
     </div>
 
     <script>
+        // ===================================================
+        // ระบบตรวจจับและบังคับเปิดเบราว์เซอร์ภายนอกสำหรับมือถือ
+        // ===================================================
+        (function() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            const isLine = /Line/i.test(ua);
+            const isFacebook = /FBAN|FBAV/i.test(ua);
+            
+            // ถ้าเปิดในแอป LINE ให้บังคับเปิดด้วยเบราว์เซอร์หลักของเครื่องทันที
+            if (isLine) {
+                if (!window.location.search.includes('openExternalBrowser=1')) {
+                    const separator = window.location.href.includes('?') ? '&' : '?';
+                    window.location.href = window.location.href + separator + 'openExternalBrowser=1';
+                }
+            }
+
+            // ถ้าตรวจสอบแล้วยังทำงานอยู่ภายใต้เบราว์เซอร์อินแอป (เช่น Facebook หรือ LINE ที่ไม่ยอมเด้งอัตโนมัติ)
+            window.addEventListener('DOMContentLoaded', () => {
+                if (isLine || isFacebook) {
+                    document.getElementById('inAppBanner').style.display = 'block';
+                    document.body.classList.add('has-banner');
+                }
+            });
+        })();
+
+        // ===================================================
+        // ระบบแอปพลิเคชันแก้ไขและตกแต่งรูปภาพหลัก
+        // ===================================================
         const canvas = document.getElementById('editorCanvas');
         const ctx = canvas.getContext('2d');
         const imageUpload = document.getElementById('imageUpload');
@@ -257,7 +314,7 @@
             draw();
         });
 
-        // ระบบสัมผัสและลากภาพ
+        // ระบบสัมผัสและลากภาพ (Mouse & Touch Screen)
         function getMousePos(e) {
             const rect = canvas.getBoundingClientRect();
             let clientX = e.clientX;
@@ -312,18 +369,15 @@
                 return;
             }
 
-            // แปลงภาพเป็น Blob เพื่อให้รองรับไฟล์ใหญ่ๆ ได้
             canvas.toBlob(function(blob) {
                 if (!blob) {
                     alert('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
                     return;
                 }
 
-                // สร้างลิงก์และสั่งดาวน์โหลด
                 const url = URL.createObjectURL(blob);
                 const link = document.createElement('a');
                 
-                // ตั้งชื่อไฟล์พร้อมเวลาปัจจุบันกันชื่อซ้ำ
                 link.download = 'promoted-cover-' + new Date().getTime() + '.png'; 
                 link.href = url;
                 
@@ -331,16 +385,7 @@
                 link.click();
                 document.body.removeChild(link);
 
-                // คืนหน่วยความจำ
                 setTimeout(() => URL.revokeObjectURL(url), 100);
-
-                // ตรวจสอบว่าเปิดผ่าน In-App Browser (LINE/Facebook) หรือไม่
-                const ua = navigator.userAgent || navigator.vendor || window.opera;
-                if (/FBAN|FBAV|Line/i.test(ua)) {
-                    setTimeout(() => {
-                        alert("💡 หากกดแล้วรูปไม่เซฟลงเครื่อง\n\nแนะนำให้กด 'จุด 3 จุด' มุมขวาบน แล้วเลือก 'เปิดในเบราว์เซอร์' (Open in Browser) ครับ");
-                    }, 800);
-                }
 
             }, 'image/png', 1.0);
         });
