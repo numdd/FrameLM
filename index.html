@@ -35,7 +35,6 @@
             color: #00c300;
         }
         
-        /* สไตล์ปุ่มอัปโหลดแบบชัวร์ 100% */
         .upload-btn-wrapper {
             margin-bottom: 15px;
             width: 100%;
@@ -57,7 +56,7 @@
             background-color: #e6f9e6;
         }
         #imageUpload {
-            display: none; /* ซ่อน input จริงไว้ แต่ให้ทำงานผ่าน label */
+            display: none; 
         }
 
         .canvas-container {
@@ -134,57 +133,6 @@
             margin-top: 10px;
             font-weight: 500;
         }
-
-        /* --------------------------------------
-           ระบบ Modal สำหรับเซฟรูปบนมือถือชัวร์ๆ
-        -------------------------------------- */
-        .modal {
-            display: none; 
-            position: fixed; 
-            z-index: 1000; 
-            left: 0;
-            top: 0;
-            width: 100%; 
-            height: 100%; 
-            background-color: rgba(0,0,0,0.8); 
-            justify-content: center;
-            align-items: center;
-            padding: 20px;
-        }
-        .modal-content {
-            background-color: #fff;
-            padding: 20px;
-            border-radius: 12px;
-            width: 100%;
-            max-width: 400px;
-            text-align: center;
-        }
-        .modal-content h3 {
-            color: #00c300;
-            margin-bottom: 10px;
-        }
-        .modal-content p {
-            font-size: 14px;
-            color: #555;
-            margin-bottom: 15px;
-        }
-        #finalImage {
-            width: 100%;
-            border-radius: 8px;
-            box-shadow: 0 4px 8px rgba(0,0,0,0.2);
-            margin-bottom: 15px;
-        }
-        .btn-close {
-            background-color: #ddd;
-            color: #333;
-            border: none;
-            padding: 10px 20px;
-            border-radius: 8px;
-            font-size: 16px;
-            font-weight: 500;
-            cursor: pointer;
-            width: 100%;
-        }
     </style>
 </head>
 <body>
@@ -222,17 +170,8 @@
             </div>
         </div>
 
-        <button class="btn-download" id="downloadBtn">📥 สร้างรูปภาพ (เพื่อนำไปใช้)</button>
+        <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปลงเครื่อง</button>
         <p class="hint">ใช้นิ้วลากเลื่อนรูปอาหารให้อยู่ตรงกลางได้เลย</p>
-    </div>
-
-    <div id="saveModal" class="modal">
-        <div class="modal-content">
-            <h3>🎉 สร้างรูปเสร็จแล้ว!</h3>
-            <p><strong>แตะค้างที่รูปภาพด้านล่าง</strong><br>แล้วเลือก <strong>"บันทึกรูปภาพ"</strong> (Save Image)</p>
-            <img id="finalImage" src="" alt="รูปผลลัพธ์">
-            <button class="btn-close" id="closeModalBtn">ปิดหน้าต่างนี้</button>
-        </div>
     </div>
 
     <script>
@@ -243,11 +182,6 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const frameThumbs = document.querySelectorAll('.frame-thumb');
         
-        // ตัวแปร Modal
-        const saveModal = document.getElementById('saveModal');
-        const finalImage = document.getElementById('finalImage');
-        const closeModalBtn = document.getElementById('closeModalBtn');
-
         // โหลดกรอบเริ่มต้น
         const frameImg = new Image();
         frameImg.src = 'LM1.png'; 
@@ -279,12 +213,10 @@
                 const img = new Image();
                 img.onload = function() {
                     userImg = img;
-                    // ปรับขนาดเริ่มต้นให้พอดี
                     baseScale = Math.max(canvas.width / userImg.width, canvas.height / userImg.height);
                     currentSliderValue = 1;
                     zoomSlider.value = 1;
 
-                    // จัดให้อยู่กึ่งกลาง
                     const finalScale = baseScale * currentSliderValue;
                     imgX = (canvas.width - userImg.width * finalScale) / 2;
                     imgY = (canvas.height - userImg.height * finalScale) / 2;
@@ -293,8 +225,6 @@
                 img.src = event.target.result;
             }
             reader.readAsDataURL(file);
-            
-            // ล้างค่า input เพื่อให้อัปโหลดรูปเดิมซ้ำได้ถ้าต้องการ
             e.target.value = ''; 
         });
 
@@ -374,7 +304,7 @@
         window.addEventListener('touchend', endDrag);
 
         // ==========================================
-        // ระบบสร้างภาพ (รองรับมือถือ 100%)
+        // ระบบดาวน์โหลดตรงเข้าเครื่อง
         // ==========================================
         downloadBtn.addEventListener('click', function() {
             if (!userImg) {
@@ -382,19 +312,37 @@
                 return;
             }
 
-            // ดึงข้อมูลภาพจาก Canvas มาเป็น Base64
-            const dataURL = canvas.toDataURL('image/png');
-            
-            // นำภาพที่ได้ไปใส่ในแท็ก <img> ใน Modal
-            finalImage.src = dataURL;
-            
-            // แสดง Modal ขึ้นมาให้ผู้ใช้กดค้างเพื่อเซฟ
-            saveModal.style.display = 'flex';
-        });
+            // แปลงภาพเป็น Blob เพื่อให้รองรับไฟล์ใหญ่ๆ ได้
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    alert('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
+                    return;
+                }
 
-        // ปิด Modal
-        closeModalBtn.addEventListener('click', function() {
-            saveModal.style.display = 'none';
+                // สร้างลิงก์และสั่งดาวน์โหลด
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                
+                // ตั้งชื่อไฟล์พร้อมเวลาปัจจุบันกันชื่อซ้ำ
+                link.download = 'promoted-cover-' + new Date().getTime() + '.png'; 
+                link.href = url;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                // คืนหน่วยความจำ
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+
+                // ตรวจสอบว่าเปิดผ่าน In-App Browser (LINE/Facebook) หรือไม่
+                const ua = navigator.userAgent || navigator.vendor || window.opera;
+                if (/FBAN|FBAV|Line/i.test(ua)) {
+                    setTimeout(() => {
+                        alert("💡 หากกดแล้วรูปไม่เซฟลงเครื่อง\n\nแนะนำให้กด 'จุด 3 จุด' มุมขวาบน แล้วเลือก 'เปิดในเบราว์เซอร์' (Open in Browser) ครับ");
+                    }, 800);
+                }
+
+            }, 'image/png', 1.0);
         });
 
     </script>
