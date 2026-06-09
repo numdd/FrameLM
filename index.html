@@ -2,15 +2,16 @@
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <title>สร้างรูปโปรโมทร้านค้า LM</title>
-    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
         * {
             box-sizing: border-box;
             margin: 0;
             padding: 0;
             font-family: 'Kanit', sans-serif;
+            -webkit-tap-highlight-color: transparent;
         }
         body {
             background-color: #f4f7f6;
@@ -18,46 +19,70 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            padding: 20px;
+            padding: 16px;
         }
         .container {
             background: #fff;
             width: 100%;
             max-width: 500px;
-            padding: 25px;
+            padding: 22px;
             border-radius: 16px;
             box-shadow: 0 8px 24px rgba(0,0,0,0.08);
             text-align: center;
         }
         h1 {
-            font-size: 24px;
-            margin-bottom: 20px;
-            color: #00c300;
+            font-size: 23px;
+            margin-bottom: 18px;
+            color: #00b900;
+            font-weight: 600;
         }
         .upload-btn-wrapper {
             margin-bottom: 15px;
             width: 100%;
+            position: relative;
+        }
+        /* สำคัญ: ห้ามซ่อน input ด้วย display:none เพราะบาง Facebook/LINE WebView บนมือถือจะกดไม่ขึ้น */
+        .real-file-input {
+            position: absolute;
+            inset: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            cursor: pointer;
+            z-index: 3;
         }
         .btn-upload {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 52px;
             border: 2px dashed #00c300;
-            color: #00c300;
-            background-color: white;
+            color: #00a800;
+            background-color: #fff;
             padding: 12px 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 500;
-            cursor: pointer;
             width: 100%;
-            transition: all 0.3s ease;
+            transition: all 0.25s ease;
+            user-select: none;
         }
+        .upload-btn-wrapper:active .btn-upload,
         .btn-upload:hover {
             background-color: #f0fdf0;
+            transform: translateY(1px);
+        }
+        .file-name {
+            margin-top: 8px;
+            font-size: 12px;
+            color: #777;
+            word-break: break-word;
         }
         .canvas-container {
             width: 100%;
             aspect-ratio: 1 / 1;
             margin-bottom: 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             overflow: hidden;
             box-shadow: 0 4px 12px rgba(0,0,0,0.1);
             background-color: #eee;
@@ -68,6 +93,7 @@
             height: 100%;
             touch-action: none;
             cursor: move;
+            display: block;
         }
         .control-group {
             margin-bottom: 20px;
@@ -79,7 +105,6 @@
             font-weight: 500;
             font-size: 14px;
         }
-        
         .frame-selector {
             display: flex;
             flex-wrap: wrap;
@@ -87,7 +112,7 @@
             justify-content: flex-start;
         }
         .frame-thumb {
-            width: calc(33.33% - 7px); 
+            width: calc(33.33% - 7px);
             aspect-ratio: 1 / 1;
             object-fit: cover;
             border: 2px solid #ddd;
@@ -95,36 +120,113 @@
             cursor: pointer;
             transition: all 0.2s ease;
             background-color: #f9f9f9;
+            user-select: none;
         }
         .frame-thumb.active {
             border-color: #00c300;
             box-shadow: 0 0 8px rgba(0, 195, 0, 0.4);
             transform: scale(1.03);
         }
-
         input[type=range] {
             width: 100%;
             accent-color: #00c300;
         }
-        .btn-download {
-            background-color: #00c300;
-            color: white;
+        .actions {
+            display: grid;
+            gap: 10px;
+        }
+        .btn-download,
+        .btn-secondary {
             border: none;
             padding: 14px 20px;
-            border-radius: 8px;
+            border-radius: 10px;
             font-size: 16px;
             font-weight: 500;
             cursor: pointer;
             width: 100%;
-            transition: background 0.3s;
+            transition: all 0.25s;
         }
+        .btn-download {
+            background-color: #00c300;
+            color: white;
+        }
+        .btn-download:active,
         .btn-download:hover {
             background-color: #00a000;
+            transform: translateY(1px);
+        }
+        .btn-secondary {
+            background-color: #eef7ef;
+            color: #087a08;
+            border: 1px solid #cbe8ce;
+        }
+        .btn-secondary:disabled {
+            opacity: 0.45;
+            cursor: not-allowed;
         }
         .hint {
             font-size: 12px;
             color: #888;
+            margin-top: 12px;
+            line-height: 1.55;
+        }
+        .status {
             margin-top: 10px;
+            font-size: 13px;
+            color: #555;
+            min-height: 20px;
+            line-height: 1.5;
+        }
+        .modal {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.72);
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 18px;
+            z-index: 9999;
+        }
+        .modal.show {
+            display: flex;
+        }
+        .modal-card {
+            width: 100%;
+            max-width: 460px;
+            background: white;
+            border-radius: 16px;
+            padding: 16px;
+            text-align: center;
+        }
+        .modal-card h2 {
+            font-size: 18px;
+            margin-bottom: 8px;
+            color: #00a000;
+        }
+        .modal-card p {
+            font-size: 13px;
+            color: #555;
+            line-height: 1.6;
+            margin-bottom: 12px;
+        }
+        .result-img {
+            width: 100%;
+            border-radius: 10px;
+            border: 1px solid #eee;
+            margin-bottom: 12px;
+        }
+        .modal-actions {
+            display: grid;
+            gap: 8px;
+        }
+        .close-btn {
+            background: #f1f1f1;
+            color: #333;
+            border: none;
+            padding: 12px;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 15px;
         }
     </style>
 </head>
@@ -132,10 +234,11 @@
 
     <div class="container">
         <h1>สร้างรูปโปรโมทร้าน</h1>
-        
+
         <div class="upload-btn-wrapper">
-            <button class="btn-upload" id="uploadTriggerBtn">📁 เลือกรูปภาพอาหารของคุณ</button>
-            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" style="display: none;" />
+            <input class="real-file-input" type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp, image/*">
+            <div class="btn-upload" id="uploadLabel">📁 เลือกรูปภาพอาหารของคุณ</div>
+            <div class="file-name" id="fileName">ยังไม่ได้เลือกรูป</div>
         </div>
 
         <div class="canvas-container">
@@ -161,61 +264,88 @@
             </div>
         </div>
 
-        <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปภาพคมชัดสูง</button>
-        <p class="hint">*สามารถใช้นิ้วเลื่อนหรือลากรูปภาพในกรอบได้เลย</p>
+        <div class="actions">
+            <button class="btn-download" id="downloadBtn" type="button">📥 ดาวน์โหลด / บันทึกรูปภาพ</button>
+            <button class="btn-secondary" id="previewBtn" type="button" disabled>👀 เปิดรูปเพื่อกดค้างบันทึก</button>
+        </div>
+        <div class="status" id="statusText"></div>
+        <p class="hint">
+            *ลากรูปด้วยนิ้วได้เลย<br>
+            *ถ้าเปิดผ่าน Facebook/LINE แล้วดาวน์โหลดไม่ได้ ให้กด “เปิดรูปเพื่อกดค้างบันทึก” หรือเปิดหน้านี้ใน Chrome/Safari
+        </p>
+    </div>
+
+    <div class="modal" id="resultModal" aria-hidden="true">
+        <div class="modal-card">
+            <h2>รูปพร้อมใช้งานแล้ว</h2>
+            <p>บนมือถือให้กดค้างที่รูป แล้วเลือก “บันทึกรูปภาพ” หรือ “แชร์” ได้เลย วิธีนี้ใช้ได้ดีกับ Facebook/LINE WebView มากกว่า</p>
+            <img id="resultImage" class="result-img" alt="รูปโปรโมทร้านที่สร้างแล้ว">
+            <div class="modal-actions">
+                <button class="btn-download" id="shareFromModalBtn" type="button">📤 แชร์ / บันทึกผ่านเมนูมือถือ</button>
+                <button class="close-btn" id="closeModalBtn" type="button">ปิด</button>
+            </div>
+        </div>
     </div>
 
     <script>
         const canvas = document.getElementById('editorCanvas');
         const ctx = canvas.getContext('2d');
         const imageUpload = document.getElementById('imageUpload');
-        const uploadTriggerBtn = document.getElementById('uploadTriggerBtn');
         const zoomSlider = document.getElementById('zoomSlider');
         const downloadBtn = document.getElementById('downloadBtn');
+        const previewBtn = document.getElementById('previewBtn');
         const frameThumbs = document.querySelectorAll('.frame-thumb');
+        const fileName = document.getElementById('fileName');
+        const statusText = document.getElementById('statusText');
+        const resultModal = document.getElementById('resultModal');
+        const resultImage = document.getElementById('resultImage');
+        const closeModalBtn = document.getElementById('closeModalBtn');
+        const shareFromModalBtn = document.getElementById('shareFromModalBtn');
 
-        // ตั้งค่ารูปกรอบเริ่มต้นเป็นกรอบแรก
         const frameImg = new Image();
-        frameImg.src = 'LM1.png'; 
-        
-        frameImg.onload = () => {
-            draw();
-        };
+        frameImg.decoding = 'async';
+        frameImg.src = 'LM1.png';
 
         let userImg = null;
         let imgX = 0, imgY = 0;
         let baseScale = 1;
         let currentSliderValue = 1;
-
         let isDragging = false;
         let lastMouseX = 0;
         let lastMouseY = 0;
+        let latestBlob = null;
+        let latestDataUrl = '';
 
-        // ================= ระบบเปลี่ยนกรอบรูป =================
+        const ua = navigator.userAgent || '';
+        const isInAppBrowser = /FBAN|FBAV|Instagram|Line|MicroMessenger/i.test(ua);
+
+        function setStatus(text) {
+            statusText.textContent = text || '';
+        }
+
+        frameImg.onload = draw;
+        frameImg.onerror = () => setStatus('โหลดกรอบ LM1.png ไม่ได้ กรุณาตรวจว่าไฟล์กรอบอยู่โฟลเดอร์เดียวกับไฟล์ HTML');
+
         frameThumbs.forEach(thumb => {
             thumb.addEventListener('click', function() {
                 frameThumbs.forEach(t => t.classList.remove('active'));
                 this.classList.add('active');
-                frameImg.src = this.getAttribute('data-src'); 
+                frameImg.src = this.getAttribute('data-src');
             });
         });
 
-        // ================= ระบบอัปโหลดรูป (แก้ปัญหาให้มือถือกดได้ชัวร์ๆ) =================
-        // เมื่อกดปุ่ม ให้ JS ไปสั่งคลิกที่ input file ที่ซ่อนอยู่
-        uploadTriggerBtn.addEventListener('click', function() {
-            imageUpload.click();
-        });
-
         imageUpload.addEventListener('change', function(e) {
-            const file = e.target.files[0];
+            const file = e.target.files && e.target.files[0];
             if (!file) return;
+
+            fileName.textContent = file.name;
+            setStatus('กำลังโหลดรูป...');
 
             const reader = new FileReader();
             reader.onload = function(event) {
                 const img = new Image();
                 img.onload = function() {
                     userImg = img;
-                    
                     baseScale = Math.max(canvas.width / userImg.width, canvas.height / userImg.height);
                     currentSliderValue = 1;
                     zoomSlider.value = 1;
@@ -224,17 +354,26 @@
                     imgX = (canvas.width - userImg.width * finalScale) / 2;
                     imgY = (canvas.height - userImg.height * finalScale) / 2;
 
+                    previewBtn.disabled = false;
+                    latestBlob = null;
+                    latestDataUrl = '';
                     draw();
-                }
+                    setStatus('เลือกรูปแล้ว สามารถลาก/ซูม แล้วกดดาวน์โหลดได้เลย');
+                };
+                img.onerror = function() {
+                    setStatus('เปิดไฟล์รูปไม่ได้ ลองใช้ JPG หรือ PNG แทน');
+                };
                 img.src = event.target.result;
-            }
+            };
+            reader.onerror = function() {
+                setStatus('อ่านไฟล์รูปไม่สำเร็จ กรุณาลองใหม่');
+            };
             reader.readAsDataURL(file);
         });
 
-        // ================= วาด Canvas =================
         function draw() {
             ctx.clearRect(0, 0, canvas.width, canvas.height);
-            ctx.fillStyle = "#ffffff";
+            ctx.fillStyle = '#ffffff';
             ctx.fillRect(0, 0, canvas.width, canvas.height);
 
             if (userImg) {
@@ -242,66 +381,56 @@
                 ctx.drawImage(userImg, imgX, imgY, userImg.width * finalScale, userImg.height * finalScale);
             }
 
-            if (frameImg.complete && frameImg.naturalHeight !== 0) {
+            if (frameImg.complete && frameImg.naturalWidth > 0) {
                 ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
             }
         }
 
-        // ================= ซูมรูปภาพ =================
         zoomSlider.addEventListener('input', function(e) {
             if (!userImg) return;
             const newSliderValue = parseFloat(e.target.value);
             const ratio = newSliderValue / currentSliderValue;
-
             const cx = canvas.width / 2;
             const cy = canvas.height / 2;
 
             imgX = cx - (cx - imgX) * ratio;
             imgY = cy - (cy - imgY) * ratio;
-
             currentSliderValue = newSliderValue;
+            latestBlob = null;
+            latestDataUrl = '';
             draw();
         });
 
-        // ================= ลากเลื่อนรูปภาพ =================
-        function getMousePos(e) {
+        function getPointerPos(e) {
             const rect = canvas.getBoundingClientRect();
-            let clientX = e.clientX;
-            let clientY = e.clientY;
-            
-            if (e.touches && e.touches.length > 0) {
-                clientX = e.touches[0].clientX;
-                clientY = e.touches[0].clientY;
-            }
-
+            const point = e.touches && e.touches.length ? e.touches[0] : e;
             return {
-                x: (clientX - rect.left) * (canvas.width / rect.width),
-                y: (clientY - rect.top) * (canvas.height / rect.height)
+                x: (point.clientX - rect.left) * (canvas.width / rect.width),
+                y: (point.clientY - rect.top) * (canvas.height / rect.height)
             };
         }
 
         function startDrag(e) {
             if (!userImg) return;
+            e.preventDefault();
             isDragging = true;
-            const pos = getMousePos(e);
+            const pos = getPointerPos(e);
             lastMouseX = pos.x;
             lastMouseY = pos.y;
         }
 
         function drag(e) {
             if (!isDragging || !userImg) return;
-            if (e.type === 'touchmove') {
-                e.preventDefault(); 
-            }
-            const pos = getMousePos(e);
+            e.preventDefault();
+            const pos = getPointerPos(e);
             const dx = pos.x - lastMouseX;
             const dy = pos.y - lastMouseY;
-
             imgX += dx;
             imgY += dy;
-
             lastMouseX = pos.x;
             lastMouseY = pos.y;
+            latestBlob = null;
+            latestDataUrl = '';
             draw();
         }
 
@@ -312,64 +441,121 @@
         canvas.addEventListener('mousedown', startDrag);
         window.addEventListener('mousemove', drag);
         window.addEventListener('mouseup', endDrag);
-
-        canvas.addEventListener('touchstart', startDrag, {passive: false});
-        window.addEventListener('touchmove', drag, {passive: false});
+        canvas.addEventListener('touchstart', startDrag, { passive: false });
+        window.addEventListener('touchmove', drag, { passive: false });
         window.addEventListener('touchend', endDrag);
 
-        // ================= ระบบดาวน์โหลดรองรับมือถือ =================
-        downloadBtn.addEventListener('click', function() {
+        function canvasToBlob() {
+            return new Promise((resolve, reject) => {
+                canvas.toBlob(blob => {
+                    if (blob) resolve(blob);
+                    else reject(new Error('ไม่สามารถสร้างไฟล์ภาพได้'));
+                }, 'image/png', 1.0);
+            });
+        }
+
+        async function prepareResult() {
             if (!userImg) {
-                alert('กรุณาเลือกรูปภาพอาหารของคุณก่อนดาวน์โหลดครับ');
-                return;
+                alert('กรุณาเลือกรูปภาพอาหารของคุณก่อนครับ');
+                return null;
             }
-
-            canvas.toBlob(function(blob) {
-                if (!blob) {
-                    alert('เกิดข้อผิดพลาดในการสร้างไฟล์ภาพ');
-                    return;
-                }
-
-                const fileName = 'promoted-cover.png';
-
-                if (navigator.canShare && navigator.share) {
-                    const file = new File([blob], fileName, { type: blob.type });
-                    if (navigator.canShare({ files: [file] })) {
-                        navigator.share({
-                            files: [file],
-                            title: 'รูปโปรโมทร้าน'
-                        }).catch((error) => {
-                            forceDownload(blob, fileName);
-                        });
-                        return; 
-                    }
-                }
-
-                forceDownload(blob, fileName);
-
-            }, 'image/png', 1.0);
-        });
-
-        function forceDownload(blob, fileName) {
-            const url = URL.createObjectURL(blob);
-            const link = document.createElement('a');
-            link.download = fileName;
-            link.href = url;
-            
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-
-            setTimeout(() => URL.revokeObjectURL(url), 100);
-
-            const ua = navigator.userAgent || navigator.vendor || window.opera;
-            if (ua.includes("FBAN") || ua.includes("FBAV") || ua.includes("Line")) {
-                setTimeout(() => {
-                    alert("💡 หากกดแล้วไม่ดาวน์โหลด (เนื่องจากเปิดในแอป LINE/Facebook)\n\nแนะนำให้กดไอคอน 'จุด 3 จุด' มุมบนขวา แล้วเลือก 'เปิดในเบราว์เซอร์เริ่มต้น' (Open in external browser) ครับ");
-                }, 500);
+            draw();
+            try {
+                latestBlob = await canvasToBlob();
+                latestDataUrl = canvas.toDataURL('image/png', 1.0);
+                return latestBlob;
+            } catch (err) {
+                setStatus('สร้างไฟล์ไม่สำเร็จ: ' + err.message);
+                return null;
             }
         }
 
+        async function shareResult(blob) {
+            const file = new File([blob], 'promoted-cover.png', { type: 'image/png' });
+            if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+                await navigator.share({
+                    files: [file],
+                    title: 'รูปโปรโมทร้าน',
+                    text: 'รูปโปรโมทร้านที่สร้างไว้'
+                });
+                return true;
+            }
+            return false;
+        }
+
+        function normalDownload(blob) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = 'promoted-cover.png';
+            link.rel = 'noopener';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            setTimeout(() => URL.revokeObjectURL(url), 1500);
+        }
+
+        function showResultModal() {
+            if (!latestDataUrl) latestDataUrl = canvas.toDataURL('image/png', 1.0);
+            resultImage.src = latestDataUrl;
+            resultModal.classList.add('show');
+            resultModal.setAttribute('aria-hidden', 'false');
+        }
+
+        downloadBtn.addEventListener('click', async function() {
+            const blob = await prepareResult();
+            if (!blob) return;
+
+            setStatus('กำลังเปิดเมนูบันทึกรูป...');
+
+            try {
+                const shared = await shareResult(blob);
+                if (shared) {
+                    setStatus('เปิดเมนูแชร์/บันทึกแล้ว');
+                    return;
+                }
+            } catch (err) {
+                // ผู้ใช้อาจกดยกเลิกแชร์ ไม่ใช่ error ร้ายแรง
+            }
+
+            if (isInAppBrowser) {
+                showResultModal();
+                setStatus('เปิดรูปสำเร็จ ให้กดค้างที่รูปเพื่อบันทึก');
+                return;
+            }
+
+            normalDownload(blob);
+            setStatus('ถ้าไฟล์ไม่เด้งดาวน์โหลด ให้กดปุ่ม “เปิดรูปเพื่อกดค้างบันทึก”');
+        });
+
+        previewBtn.addEventListener('click', async function() {
+            const blob = await prepareResult();
+            if (!blob) return;
+            showResultModal();
+        });
+
+        shareFromModalBtn.addEventListener('click', async function() {
+            const blob = latestBlob || await prepareResult();
+            if (!blob) return;
+            try {
+                const shared = await shareResult(blob);
+                if (!shared) normalDownload(blob);
+            } catch (err) {
+                showResultModal();
+            }
+        });
+
+        closeModalBtn.addEventListener('click', function() {
+            resultModal.classList.remove('show');
+            resultModal.setAttribute('aria-hidden', 'true');
+        });
+
+        resultModal.addEventListener('click', function(e) {
+            if (e.target === resultModal) closeModalBtn.click();
+        });
+
+        // วาดพื้นขาวและกรอบเริ่มต้น
+        draw();
     </script>
 </body>
 </html>
