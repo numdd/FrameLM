@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>สร้างรูปโปรโมทร้านค้า</title>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Kanit', sans-serif;
+        }
+        
+        /* สไตล์ของแถบแจ้งเตือนเมื่อเปิดในแอป LINE / Facebook */
+        .in-app-banner {
+            display: none;
+            background-color: #ffcc00;
+            color: #111;
+            padding: 12px 15px;
+            font-size: 14px;
+            font-weight: 500;
+            text-align: center;
+            width: 100%;
+            position: fixed;
+            top: 0;
+            left: 0;
+            z-index: 9999;
+            box-shadow: 0 3px 10px rgba(0,0,0,0.15);
+            border-bottom: 2px solid #e6b800;
+        }
+        
+        body {
+            background-color: #f4f7f6;
+            color: #333;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        /* ขยับเนื้อหาลงมาเมื่อมีแถบแจ้งเตือนปรากฏ */
+        body.has-banner {
+            padding-top: 70px;
+        }
+
+        .container {
+            background: #fff;
+            width: 100%;
+            max-width: 500px;
+            padding: 25px;
+            border-radius: 16px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.08);
+            text-align: center;
+        }
+        h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            color: #00c300;
+        }
+        
+        .upload-btn-wrapper {
+            margin-bottom: 15px;
+            width: 100%;
+        }
+        .btn-upload-label {
+            display: block;
+            border: 2px dashed #00c300;
+            color: #00c300;
+            background-color: white;
+            padding: 12px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: all 0.3s ease;
+        }
+        .btn-upload-label:active {
+            background-color: #e6f9e6;
+        }
+        #imageUpload {
+            display: none; 
+        }
+
+        .canvas-container {
+            width: 100%;
+            aspect-ratio: 1 / 1;
+            margin-bottom: 20px;
+            border-radius: 8px;
+            overflow: hidden;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            background-color: #eee;
+            position: relative;
+        }
+        canvas {
+            width: 100%;
+            height: 100%;
+            touch-action: none;
+            cursor: move;
+        }
+        .control-group {
+            margin-bottom: 20px;
+            text-align: left;
+        }
+        .control-group label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 500;
+            font-size: 14px;
+        }
+        
+        .frame-selector {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            justify-content: flex-start;
+        }
+        .frame-thumb {
+            width: calc(33.33% - 7px); 
+            aspect-ratio: 1 / 1;
+            object-fit: cover;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background-color: #f9f9f9;
+        }
+        .frame-thumb.active {
+            border-color: #00c300;
+            box-shadow: 0 0 8px rgba(0, 195, 0, 0.4);
+            transform: scale(1.03);
+        }
+
+        input[type=range] {
+            width: 100%;
+            accent-color: #00c300;
+        }
+        .btn-download {
+            background-color: #00c300;
+            color: white;
+            border: none;
+            padding: 14px 20px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+            width: 100%;
+            transition: background 0.3s;
+        }
+        .btn-download:active {
+            background-color: #00a000;
+        }
+        .hint {
+            font-size: 13px;
+            color: #ff0000;
+            margin-top: 10px;
+            font-weight: 500;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="inAppBanner" class="in-app-banner">
+        ⚠️ เพื่อให้ดาวน์โหลดรูปได้: กรุณากดที่ปุ่ม <b>(จุด 3 จุด ⋯)</b> ด้านบนขวา แล้วเลือก <b>"เปิดในเบราว์เซอร์ปกติ" (Open in Browser)</b>
+    </div>
+
+    <div class="container">
+        <h1>สร้างรูปโปรโมทร้าน</h1>
+        
+        <div class="upload-btn-wrapper">
+            <label class="btn-upload-label" for="imageUpload">
+                📁 แตะเพื่อเลือกรูปภาพอาหาร
+            </label>
+            <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" />
+        }
+
+        <div class="canvas-container">
+            <canvas id="editorCanvas" width="1080" height="1080"></canvas>
+        </div>
+
+        <div class="control-group">
+            <label for="zoomSlider">🔍 ปรับขนาดรูปภาพ (เลื่อนซ้าย-ขวา)</label>
+            <input type="range" id="zoomSlider" min="0.5" max="3" step="0.05" value="1">
+        </div>
+
+        <div class="control-group">
+            <label>🖼️ เลือกกรอบรูป</label>
+            <div class="frame-selector">
+                <!-- เพิ่มกรอบใหม่ด้านหน้า -->
+                <img src="OLM1.jpg" class="frame-thumb active" data-src="OLM1.jpg" alt="Official Lineman 1">
+                <img src="OLM2.jpg" class="frame-thumb" data-src="OLM2.jpg" alt="Official Lineman 2">
+                <img src="OLM3.jpg" class="frame-thumb" data-src="OLM3.jpg" alt="Official Lineman 3">
+                <!-- กรอบเดิม -->
+                <img src="LM1.png" class="frame-thumb" data-src="LM1.png" alt="กรอบ 1">
+                <img src="LM2.png" class="frame-thumb" data-src="LM2.png" alt="กรอบ 2">
+                <img src="LM3.png" class="frame-thumb" data-src="LM3.png" alt="กรอบ 3">
+                <img src="LM4.png" class="frame-thumb" data-src="LM4.png" alt="กรอบ 4">
+                <img src="LM5.png" class="frame-thumb" data-src="LM5.png" alt="กรอบ 5">
+                <img src="LM6.png" class="frame-thumb" data-src="LM6.png" alt="กรอบ 6">
+                <img src="LM7.png" class="frame-thumb" data-src="LM7.png" alt="กรอบ 7">
+                <img src="LM8.png" class="frame-thumb" data-src="LM8.png" alt="กรอบ 8">
+            </div>
+        </div>
+
+        <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปลงเครื่อง</button>
+        <p class="hint">ใช้นิ้วลากเลื่อนรูปอาหารให้อยู่ตรงกลางได้เลย</p>
+    </div>
+
+    <script>
+        // ===================================================
+        // ระบบตรวจจับและบังคับเปิดเบราว์เซอร์ภายนอกสำหรับมือถือ
+        // ===================================================
+        (function() {
+            const ua = navigator.userAgent || navigator.vendor || window.opera;
+            const isLine = /Line/i.test(ua);
+            const isFacebook = /FBAN|FBAV/i.test(ua);
+            
+            // ถ้าเปิดในแอป LINE ให้บังคับเปิดด้วยเบราว์เซอร์หลักของเครื่องทันที
+            if (isLine) {
+                if (!window.location.search.includes('openExternalBrowser=1')) {
+                    const separator = window.location.href.includes('?') ? '&' : '?';
+                    window.location.href = window.location.href + separator + 'openExternalBrowser=1';
+                }
+            }
+
+            // ถ้าตรวจสอบแล้วยังทำงานอยู่ภายใต้เบราว์เซอร์อินแอป (เช่น Facebook หรือ LINE ที่ไม่ยอมเด้งอัตโนมัติ)
+            window.addEventListener('DOMContentLoaded', () => {
+                if (isLine || isFacebook) {
+                    document.getElementById('inAppBanner').style.display = 'block';
+                    document.body.classList.add('has-banner');
+                }
+            });
+        })();
+
+        // ===================================================
+        // ระบบแอปพลิเคชันแก้ไขและตกแต่งรูปภาพหลัก
+        // ===================================================
+        const canvas = document.getElementById('editorCanvas');
+        const ctx = canvas.getContext('2d');
+        const imageUpload = document.getElementById('imageUpload');
+        const zoomSlider = document.getElementById('zoomSlider');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const frameThumbs = document.querySelectorAll('.frame-thumb');
+        
+        // โหลดกรอบเริ่มต้น (เปลี่ยนเป็นกรอบ Official ตัวแรก)
+        const frameImg = new Image();
+        frameImg.src = 'OLM1.jpg'; 
+        frameImg.onload = () => { draw(); };
+
+        let userImg = null;
+        let imgX = 0, imgY = 0;
+        let baseScale = 1;
+        let currentSliderValue = 1;
+        let isDragging = false;
+        let lastMouseX = 0, lastMouseY = 0;
+
+        // ระบบเปลี่ยนกรอบ
+        frameThumbs.forEach(thumb => {
+            thumb.addEventListener('click', function() {
+                frameThumbs.forEach(t => t.classList.remove('active'));
+                this.classList.add('active');
+                frameImg.src = this.getAttribute('data-src'); 
+            });
+        });
+
+        // ระบบรับไฟล์รูปภาพ
+        imageUpload.addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(event) {
+                const img = new Image();
+                img.onload = function() {
+                    userImg = img;
+                    baseScale = Math.max(canvas.width / userImg.width, canvas.height / userImg.height);
+                    currentSliderValue = 1;
+                    zoomSlider.value = 1;
+
+                    const finalScale = baseScale * currentSliderValue;
+                    imgX = (canvas.width - userImg.width * finalScale) / 2;
+                    imgY = (canvas.height - userImg.height * finalScale) / 2;
+                    draw();
+                }
+                img.src = event.target.result;
+            }
+            reader.readAsDataURL(file);
+            e.target.value = ''; 
+        });
+
+        // ระบบวาดลง Canvas
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "#ffffff";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            if (userImg) {
+                const finalScale = baseScale * currentSliderValue;
+                ctx.drawImage(userImg, imgX, imgY, userImg.width * finalScale, userImg.height * finalScale);
+            }
+
+            if (frameImg.complete && frameImg.naturalHeight !== 0) {
+                ctx.drawImage(frameImg, 0, 0, canvas.width, canvas.height);
+            }
+        }
+
+        // ระบบซูมภาพ
+        zoomSlider.addEventListener('input', function(e) {
+            if (!userImg) return;
+            const newSliderValue = parseFloat(e.target.value);
+            const ratio = newSliderValue / currentSliderValue;
+            const cx = canvas.width / 2;
+            const cy = canvas.height / 2;
+            imgX = cx - (cx - imgX) * ratio;
+            imgY = cy - (cy - imgY) * ratio;
+            currentSliderValue = newSliderValue;
+            draw();
+        });
+
+        // ระบบสัมผัสและลากภาพ (Mouse & Touch Screen)
+        function getMousePos(e) {
+            const rect = canvas.getBoundingClientRect();
+            let clientX = e.clientX;
+            let clientY = e.clientY;
+            if (e.touches && e.touches.length > 0) {
+                clientX = e.touches[0].clientX;
+                clientY = e.touches[0].clientY;
+            }
+            return {
+                x: (clientX - rect.left) * (canvas.width / rect.width),
+                y: (clientY - rect.top) * (canvas.height / rect.height)
+            };
+        }
+
+        function startDrag(e) {
+            if (!userImg) return;
+            isDragging = true;
+            const pos = getMousePos(e);
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
+        }
+
+        function drag(e) {
+            if (!isDragging || !userImg) return;
+            if (e.type === 'touchmove') e.preventDefault(); 
+            const pos = getMousePos(e);
+            const dx = pos.x - lastMouseX;
+            const dy = pos.y - lastMouseY;
+            imgX += dx;
+            imgY += dy;
+            lastMouseX = pos.x;
+            lastMouseY = pos.y;
+            draw();
+        }
+
+        function endDrag() { isDragging = false; }
+
+        canvas.addEventListener('mousedown', startDrag);
+        window.addEventListener('mousemove', drag);
+        window.addEventListener('mouseup', endDrag);
+
+        canvas.addEventListener('touchstart', startDrag, {passive: false});
+        window.addEventListener('touchmove', drag, {passive: false});
+        window.addEventListener('touchend', endDrag);
+
+        // ==========================================
+        // ระบบดาวน์โหลดตรงเข้าเครื่อง
+        // ==========================================
+        downloadBtn.addEventListener('click', function() {
+            if (!userImg) {
+                alert('กรุณาแตะเลือกรูปภาพอาหารก่อนครับ');
+                return;
+            }
+
+            canvas.toBlob(function(blob) {
+                if (!blob) {
+                    alert('เกิดข้อผิดพลาดในการประมวลผลรูปภาพ');
+                    return;
+                }
+
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                
+                link.download = 'promoted-cover-' + new Date().getTime() + '.png'; 
+                link.href = url;
+                
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                setTimeout(() => URL.revokeObjectURL(url), 100);
+
+            }, 'image/png', 1.0);
+        });
+
+    </script>
+</body>
+</html>
