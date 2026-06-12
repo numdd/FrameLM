@@ -181,6 +181,7 @@
         </div>
 
         <div class="control-group">
+            <p class="hint">ใช้นิ้วลากเลื่อนรูปอาหารให้อยู่ตรงกลางได้เลย</p>
             <label for="zoomSlider">🔍 ปรับขนาดรูปภาพ (เลื่อนซ้าย-ขวา)</label>
             <input type="range" id="zoomSlider" min="0.5" max="3" step="0.05" value="1">
         </div>
@@ -188,7 +189,10 @@
         <div class="control-group">
             <label>🖼️ เลือกกรอบรูป</label>
             <div class="frame-selector">
-                <img src="LM1.png" class="frame-thumb active" data-src="LM1.png" alt="กรอบ 1">
+                <img src="OLM1.png" class="frame-thumb active" data-src="OLM1.png" alt="Official Lineman 1">
+                <img src="OLM2.png" class="frame-thumb" data-src="OLM2.png" alt="Official Lineman 2">
+                <img src="OLM3.png" class="frame-thumb" data-src="OLM3.png" alt="Official Lineman 3">
+                <img src="LM1.png" class="frame-thumb" data-src="LM1.png" alt="กรอบ 1">
                 <img src="LM2.png" class="frame-thumb" data-src="LM2.png" alt="กรอบ 2">
                 <img src="LM3.png" class="frame-thumb" data-src="LM3.png" alt="กรอบ 3">
                 <img src="LM4.png" class="frame-thumb" data-src="LM4.png" alt="กรอบ 4">
@@ -200,7 +204,7 @@
         </div>
 
         <button class="btn-download" id="downloadBtn">📥 ดาวน์โหลดรูปลงเครื่อง</button>
-        <p class="hint">ใช้นิ้วลากเลื่อนรูปอาหารให้อยู่ตรงกลางได้เลย</p>
+        
     </div>
 
     <script>
@@ -239,9 +243,9 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const frameThumbs = document.querySelectorAll('.frame-thumb');
         
-        // โหลดกรอบเริ่มต้น
+        // โหลดกรอบเริ่มต้น (เปลี่ยนเป็น OLM1.png ให้ตรงกับไฟล์ใน GitHub)
         const frameImg = new Image();
-        frameImg.src = 'LM1.png'; 
+        frameImg.src = 'OLM1.png'; 
         frameImg.onload = () => { draw(); };
 
         let userImg = null;
