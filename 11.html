@@ -174,7 +174,7 @@
                 📁 แตะเพื่อเลือกรูปภาพอาหาร
             </label>
             <input type="file" id="imageUpload" accept="image/png, image/jpeg, image/webp" />
-        }
+        </div>
 
         <div class="canvas-container">
             <canvas id="editorCanvas" width="1080" height="1080"></canvas>
@@ -188,11 +188,9 @@
         <div class="control-group">
             <label>🖼️ เลือกกรอบรูป</label>
             <div class="frame-selector">
-                <!-- เพิ่มกรอบใหม่ด้านหน้า -->
-                <img src="OLM1.jpg" class="frame-thumb active" data-src="OLM1.jpg" alt="Official Lineman 1">
-                <img src="OLM2.jpg" class="frame-thumb" data-src="OLM2.jpg" alt="Official Lineman 2">
-                <img src="OLM3.jpg" class="frame-thumb" data-src="OLM3.jpg" alt="Official Lineman 3">
-                <!-- กรอบเดิม -->
+                <img src="OLM1.png" class="frame-thumb active" data-src="OLM1.png" alt="Official Lineman 1">
+                <img src="OLM2.png" class="frame-thumb" data-src="OLM2.png" alt="Official Lineman 2">
+                <img src="OLM3.png" class="frame-thumb" data-src="OLM3.png" alt="Official Lineman 3">
                 <img src="LM1.png" class="frame-thumb" data-src="LM1.png" alt="กรอบ 1">
                 <img src="LM2.png" class="frame-thumb" data-src="LM2.png" alt="กรอบ 2">
                 <img src="LM3.png" class="frame-thumb" data-src="LM3.png" alt="กรอบ 3">
@@ -244,9 +242,9 @@
         const downloadBtn = document.getElementById('downloadBtn');
         const frameThumbs = document.querySelectorAll('.frame-thumb');
         
-        // โหลดกรอบเริ่มต้น (เปลี่ยนเป็นกรอบ Official ตัวแรก)
+        // โหลดกรอบเริ่มต้น (เปลี่ยนเป็น OLM1.png ให้ตรงกับไฟล์ใน GitHub)
         const frameImg = new Image();
-        frameImg.src = 'OLM1.jpg'; 
+        frameImg.src = 'OLM1.png'; 
         frameImg.onload = () => { draw(); };
 
         let userImg = null;
